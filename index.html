@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Insight AI - 냉장고 시장 분석 MVP</title>
+  <!-- Google Fonts: Inter and Roboto -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- LEFT PANEL: Raw Data Connection & Chatbot (35% width on desktop) -->
+    <aside class="left-panel">
+      <!-- Raw Data Connection Area -->
+      <section class="data-connection-area">
+        <h2 class="section-title">Raw Data Connection</h2>
+        
+        <div class="connection-buttons">
+          <label for="folder-upload" class="btn btn-primary" id="lbl-folder-upload">
+            <span>폴더 선택</span>
+            <input type="file" id="folder-upload" webkitdirectory directory multiple>
+          </label>
+          
+          <label for="file-upload" class="btn btn-secondary" id="lbl-file-upload">
+            <span>CSV 파일 선택</span>
+            <input type="file" id="file-upload" multiple accept=".csv">
+          </label>
+          
+          <button id="btn-paste-trigger" class="btn btn-secondary" type="button">CSV 붙여넣기</button>
+          
+          <button id="btn-refresh" class="btn btn-warning" type="button" disabled>데이터 새로고침</button>
+        </div>
+        
+        <!-- Drag & Drop Zone -->
+        <div id="drop-zone" class="drop-zone">
+          <p>Drop CSV files here</p>
+        </div>
+        
+        <!-- Status Display -->
+        <div class="connection-status">
+          <div class="status-row">
+            <span class="status-label">Status:</span>
+            <span id="status-mode" class="status-value mode-sample">Sample Data Mode</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Last Loaded:</span>
+            <span id="status-time" class="status-value">-</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Files Loaded:</span>
+            <span id="status-count" class="status-value">0 CSV files</span>
+          </div>
+        </div>
+        
+        <p class="security-notice">
+          신규 CSV 파일을 추가한 경우, 보안 정책상 폴더를 다시 선택해야 할 수 있습니다.
+        </p>
+      </section>
+      
+      <!-- AI Chatbot Area -->
+      <section class="chatbot-area">
+        <div class="chatbot-header">
+          <h1 class="chatbot-title">Market Insight AI</h1>
+          <p class="chatbot-subtitle">분석할 데이터를 연결하거나 질문을 입력해주세요.</p>
+        </div>
+        
+        <!-- Chat History -->
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-bubble bot-bubble">
+            <div class="bubble-content">
+              안녕하세요.<br>
+              Market Insight AI 입니다.<br>
+              분석할 데이터를 연결하거나 질문을 입력해주세요.
+            </div>
+            <span class="chat-time">Just Now</span>
+          </div>
+        </div>
+        
+        <!-- Chat Suggestions -->
+        <div class="chat-suggestions-container">
+          <span class="suggestion-title">추천 질문:</span>
+          <div id="chat-suggestions" class="chat-suggestions">
+            <button class="suggestion-btn" type="button">태국 시장 현황 보여줘</button>
+            <button class="suggestion-btn" type="button">LG 점유율 분석해줘</button>
+            <button class="suggestion-btn" type="button">제품 타입별 비중 보여줘</button>
+            <button class="suggestion-btn" type="button">가격대별 시장 구조 보여줘</button>
+            <button class="suggestion-btn" type="button">용량대별 시장 구조 보여줘</button>
+            <button class="suggestion-btn" type="button">브랜드 점유율 보여줘</button>
+            <button class="suggestion-btn" type="button">전략 액션 추천해줘</button>
+          </div>
+        </div>
+        
+        <!-- Chat Input Form -->
+        <form id="chat-form" class="chat-form" onsubmit="return false;">
+          <input type="text" id="chat-input" placeholder="질문을 입력하세요... (예: 태국 시장 현황 보여줘)" autocomplete="off">
+          <button type="submit" id="chat-submit" class="btn-send">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
+            </svg>
+          </button>
+        </form>
+      </section>
+    </aside>
+    
+    <!-- RIGHT PANEL: Dashboard (65% width on desktop) -->
+    <main class="right-panel">
+      <!-- Filter Bar -->
+      <section class="filter-bar">
+        <div class="filter-group">
+          <div class="filter-item">
+            <label for="filter-country">Country</label>
+            <select id="filter-country">
+              <option value="all">전체 Country</option>
+            </select>
+          </div>
+          
+          <div class="filter-item">
+            <label for="filter-month">Month</label>
+            <select id="filter-month">
+              <option value="latest">가장 최신 Month</option>
+            </select>
+          </div>
+        </div>
+        
+        <button id="btn-apply-filter" class="btn btn-primary" type="button">Apply</button>
+      </section>
+      
+      <!-- Dashboard Grid -->
+      <div class="dashboard-content">
+        
+        <!-- KPI Cards Grid (6 Cards) -->
+        <section class="kpi-grid">
+          <div class="kpi-card" id="card-qty">
+            <div class="kpi-info">
+              <span class="kpi-title">Market Qty</span>
+              <span class="kpi-value" id="kpi-qty">-</span>
+            </div>
+            <div class="kpi-icon">📦</div>
+          </div>
+          
+          <div class="kpi-card" id="card-value">
+            <div class="kpi-info">
+              <span class="kpi-title">Market Value (USD)</span>
+              <span class="kpi-value" id="kpi-value">-</span>
+            </div>
+            <div class="kpi-icon">💵</div>
+          </div>
+          
+          <div class="kpi-card" id="card-lg-share">
+            <div class="kpi-info">
+              <span class="kpi-title">LG Share</span>
+              <span class="kpi-value" id="kpi-lg-share">-</span>
+            </div>
+            <div class="kpi-icon">🔴</div>
+          </div>
+          
+          <div class="kpi-card" id="card-asp">
+            <div class="kpi-info">
+              <span class="kpi-title">Market ASP</span>
+              <span class="kpi-value" id="kpi-asp">-</span>
+            </div>
+            <div class="kpi-icon">🏷️</div>
+          </div>
+          
+          <div class="kpi-card" id="card-growth-yoy">
+            <div class="kpi-info">
+              <span class="kpi-title">Market Growth YoY</span>
+              <span class="kpi-value" id="kpi-growth-yoy">-</span>
+            </div>
+            <div class="kpi-icon">📈</div>
+          </div>
+          
+          <div class="kpi-card" id="card-lg-share-change">
+            <div class="kpi-info">
+              <span class="kpi-title">LG Share Change YoY</span>
+              <span class="kpi-value" id="kpi-lg-share-change-yoy">-</span>
+            </div>
+            <div class="kpi-icon">📊</div>
+          </div>
+        </section>
+        
+        <!-- Charts Grid (4 custom HTML/CSS Charts) -->
+        <section class="charts-grid">
+          <div class="chart-card">
+            <h3 class="chart-title">Type Mix</h3>
+            <div id="chart-type-mix" class="chart-container custom-bar-chart">
+              <!-- Dynamically populated custom HTML/CSS bar chart -->
+            </div>
+          </div>
+          
+          <div class="chart-card">
+            <h3 class="chart-title">Capacity Mix</h3>
+            <div id="chart-capacity-mix" class="chart-container custom-bar-chart">
+              <!-- Dynamically populated custom HTML/CSS bar chart -->
+            </div>
+          </div>
+          
+          <div class="chart-card">
+            <h3 class="chart-title">Price Mix</h3>
+            <div id="chart-price-mix" class="chart-container custom-bar-chart">
+              <!-- Dynamically populated custom HTML/CSS bar chart -->
+            </div>
+          </div>
+          
+          <div class="chart-card">
+            <h3 class="chart-title">Brand Share</h3>
+            <div id="chart-brand-share" class="chart-container custom-bar-chart">
+              <!-- Dynamically populated custom HTML/CSS bar chart -->
+            </div>
+          </div>
+        </section>
+        
+        <!-- Report & Recommended Actions Area -->
+        <section class="reports-section">
+          <!-- AI Summary Report Card -->
+          <div class="report-card ai-report">
+            <div class="report-header">
+              <span class="report-icon">🤖</span>
+              <h3 class="report-card-title">AI Summary Report</h3>
+            </div>
+            <div id="report-summary" class="report-body">
+              <!-- Dynamically populated summary report -->
+            </div>
+          </div>
+          
+          <!-- Recommended Actions Card -->
+          <div class="report-card strategy-report">
+            <div class="report-header">
+              <span class="report-icon">💡</span>
+              <h3 class="report-card-title">Recommended Actions</h3>
+            </div>
+            <div id="report-actions" class="report-body">
+              <!-- Dynamically populated action cards -->
+            </div>
+          </div>
+        </section>
+        
+      </div>
+    </main>
+    
+  </div>
+
+  <!-- CSV Paste Modal -->
+  <div id="paste-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h3 class="modal-title">CSV 데이터 붙여넣기</h3>
+      <p class="modal-desc">엑셀에서 데이터 열을 복사하여 아래 영역에 붙여넣고 [분석하기]를 눌러주세요.</p>
+      <p class="modal-desc" style="font-size:12px; color:var(--text-secondary); margin-top:-5px;">
+        * 필수 헤더가 포함되어야 합니다: <br>
+        <code>Model, Year, Half, Quarter, Month, Country, Construction, Main Types, Net Ltrs Total, Brand - AD hoc, Sales Units, Sales LC(Local Currency), Sales USD</code>
+      </p>
+      <textarea id="paste-textarea" placeholder="Model	Year	Half	Quarter	Month	Country	Construction	Main Types	Net Ltrs Total	Brand - AD hoc	Sales Units	Sales LC(Local Currency)	Sales USD
+... 데이터를 여기에 붙여넣어주세요 (탭 또는 쉼표 구분)"></textarea>
+      <div class="modal-actions">
+        <button id="btn-cancel-paste" class="btn btn-secondary">취소</button>
+        <button id="btn-submit-paste" class="btn btn-primary">분석하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Load -->
+  <script src="app.js"></script>
+</body>
+</html>
