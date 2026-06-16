@@ -560,8 +560,8 @@ function showLoader(message) {
     loader.style.position = "fixed";
     loader.style.top = "15px";
     loader.style.right = "15px";
-    loader.style.background = "rgba(0, 0, 0, 0.85)";
-    loader.style.color = "#fff";
+    loader.style.background = "#ffffff";
+    loader.style.color = "var(--text-primary)";
     loader.style.padding = "10px 20px";
     loader.style.borderRadius = "8px";
     loader.style.border = "1px solid var(--border-light)";
@@ -569,7 +569,7 @@ function showLoader(message) {
     loader.style.fontSize = "0.85rem";
     loader.style.display = "flex";
     loader.style.alignItems = "center";
-    loader.style.boxShadow = "var(--shadow-lg)";
+    loader.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)";
     document.body.appendChild(loader);
   }
   loader.innerHTML = `<span class="spinner"></span> <span id="loader-text">${message}</span>`;
@@ -1301,9 +1301,49 @@ function escapeHtml(text) {
 }
 
 // --- 10. Initialization & User Event Binding ---
-document.addEventListener("DOMContentLoaded", () => {
-  // A. Load Default Sample Data
-  dataProvider.loadSampleData();
+document.addEventListener("DOMContentLoaded", async () => {
+  // Try to load dataset.csv automatically
+  showLoader("메인 데이터셋(dataset.csv) 불러오는 중...");
+  try {
+    const response = await fetch("dataset.csv");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const text = await response.text();
+    const rows = await parseCSVTextAsync(text, (percent) => {
+      showLoader(`데이터셋 파싱 중: ${percent}%`);
+    });
+    
+    if (rows.length > 0) {
+      dataProvider.resetState();
+      currentDataRows = rows;
+      currentDataRows.forEach(r => {
+        availableCountries.add(r.country);
+        availableMonths.add(r.month);
+      });
+      
+      updateFilterOptions();
+      applyFilter();
+      updateDashboardUI();
+      
+      document.getElementById("status-mode").innerText = "Dataset Loaded (dataset.csv)";
+      document.getElementById("status-mode").className = "status-value mode-connected";
+      document.getElementById("status-count").innerText = `${currentDataRows.length.toLocaleString()} rows`;
+      document.getElementById("status-time").innerText = new Date().toISOString().split('T')[0] + ' ' + new Date().toTimeString().split(' ')[0].slice(0, 5);
+      
+      // Disable refresh as it is a fetched file
+      document.getElementById("btn-refresh").disabled = true;
+      hideLoader();
+      showBotMessage(`성공: <code>dataset.csv</code> 데이터셋(${currentDataRows.length.toLocaleString()}행)을 로드하여 대시보드에 반영했습니다.`);
+    } else {
+      throw new Error("데이터셋에 행이 없습니다.");
+    }
+  } catch (err) {
+    console.warn("Failed to auto-load dataset.csv. Falling back to sample data.", err);
+    hideLoader();
+    dataProvider.loadSampleData();
+    showBotMessage(`안내: 원격 데이터셋(dataset.csv) 로드 실패로 샘플 데이터를 표시합니다.<br><span style="font-size:11px;color:var(--text-muted);">* 로컬에서 file:// 프로토콜로 열었을 경우 브라우저 보안(CORS)으로 인해 자동 로드가 차단될 수 있습니다. 웹 서버를 실행하거나 CSV 파일/폴더 선택 기능을 이용해주세요.</span>`);
+  }
   
   // B. File/Folder Connection Events
   const folderInput = document.getElementById("folder-upload");
